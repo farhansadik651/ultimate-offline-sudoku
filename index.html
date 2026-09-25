@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#2563eb">
+<title>Ultimate Offline Sudoku</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+body{
+  margin:0;
+  font-family:Arial,"Noto Sans Bengali",sans-serif;
+  background:#eef3ff;
+  color:#172033;
+  min-height:100vh;
+}
+
+button,select{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.app{
+  width:min(100%,600px);
+  margin:auto;
+  padding:16px 12px 30px;
+}
+
+.header{
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:white;
+  border-radius:24px;
+  padding:24px 18px;
+  text-align:center;
+  box-shadow:0 10px 30px #2563eb25;
+}
+
+.header h1{
+  margin:0;
+  font-size:clamp(24px,7vw,36px);
+}
+
+.header p{
+  margin:10px 0 0;
+  opacity:.9;
+}
+
+.panel{
+  background:white;
+  border-radius:18px;
+  padding:14px;
+  margin-top:14px;
+  box-shadow:0 5px 18px #1720330c;
+}
+
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+label{
+  display:block;
+  font-weight:bold;
+  font-size:13px;
+  margin-bottom:5px;
+}
+
+select{
+  width:100%;
+  border:1px solid #dbe3f0;
+  border-radius:10px;
+  padding:11px;
+  background:#f8faff;
+  color:#172033;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+}
+
+.stat{
+  background:#f1f5ff;
+  border-radius:12px;
+  text-align:center;
+  padding:10px 4px;
+}
+
+.stat strong{
+  display:block;
+  color:#2563eb;
+  font-size:20px;
+}
+
+.stat span{
+  font-size:11px;
+  color:#64748b;
+}
+
+.status{
+  text-align:center;
+  font-weight:bold;
+  font-size:14px;
+  min-height:20px;
+  margin-top:12px;
+}
+
+.board-wrap{
+  display:flex;
+  justify-content:center;
+  margin-top:16px;
+}
+
+.board{
+  display:grid;
+  grid-template-columns:repeat(9,1fr);
+  width:100%;
+  max-width:500px;
+  aspect-ratio:1;
+  border:3px solid #172033;
+  border-radius:6px;
+  overflow:hidden;
+  background:#172033;
+  gap:1px;
+}
+
+.cell{
+  min-width:0;
+  min-height:0;
+  border:0;
+  background:#fff;
+  color:#172033;
+  font-size:clamp(14px,4.5vw,27px);
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  border-radius:0;
+  transition:background .15s;
+}
+
+.cell:nth-child(3n){
+  border-right:2px solid #172033;
+}
+
+.cell:nth-child(9n){
+  border-right:0;
+}
+
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54){
+  border-bottom:2px solid #172033;
+}
+
+.cell.given{
+  background:#e8eefb;
+  color:#1e3a8a;
+}
+
+.cell.selected{
+  background:#dbeafe;
+}
+
+.cell.related{
+  background:#eff6ff;
+}
+
+.cell.same-number{
+  background:#bfdbfe;
+}
+
+.cell.wrong{
+  background:#fee2e2!important;
+  color:#dc2626!important;
+}
+
+.cell.correct{
+  color:#059669;
+}
+
+.cell:focus-visible{
+  outline:3px solid #f59e0b;
+  outline-offset:-3px;
+}
+
+.numbers{
+  display:grid;
+  grid-template-columns:repeat(9,1fr);
+  gap:6px;
+  margin-top:16px;
+}
+
+.num-btn{
+  border:1px solid #dbe3f0;
+  background:#f8faff;
+  border-radius:10px;
+  padding:12px 0;
+  font-size:18px;
+  font-weight:bold;
+  color:#2563eb;
+}
+
+.num-btn:active{
+  transform:scale(.95);
+}
+
+.action-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:8px;
+  margin-top:14px;
+}
+
+.btn{
+  border:0;
+  border-radius:12px;
+  padding:13px 8px;
+  font-weight:bold;
+  color:white;
+  background:#2563eb;
+}
+
+.btn.secondary{
+  background:#64748b;
+}
+
+.btn.green{
+  background:#059669;
+}
+
+.btn.orange{
+  background:#d97706;
+}
+
+.btn.red{
+  background:#dc2626;
+}
+
+.btn:active{
+  transform:scale(.98);
+}
+
+.help{
+  margin-top:14px;
+  background:#f8faff;
+  border:1px solid #e0e8f7;
+  border-radius:12px;
+  padding:12px;
+  font-size:13px;
+  line-height:1.7;
+}
+
+.help strong{
+  color:#2563eb;
+}
+
+.footer{
+  text-align:center;
+  color:#64748b;
+  font-size:12px;
+  margin-top:18px;
+}
+
+@media(max-width:350px){
+  .app{
+    padding:10px 6px 20px;
+  }
+
+  .panel{
+    padding:10px;
+  }
+
+  .numbers{
+    gap:3px;
+  }
+
+  .num-btn{
+    padding:10px 0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <header class="header">
+    <h1>🧩 Ultimate Sudoku</h1>
+    <p>অফলাইন বুদ্ধির খেলা</p>
+  </header>
+
+  <section class="panel">
+
+    <div class="controls">
+      <div>
+        <label for="difficulty">🎯 লেভেল</label>
+        <select id="difficulty">
+          <option value="easy">সহজ (Easy)</option>
+          <option value="medium" selected>মাঝারি (Medium)</option>
+          <option value="hard">কঠিন (Hard)</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="mode">🎮 মোড</label>
+        <select id="mode">
+          <option value="normal">সাধারণ</option>
+          <option value="assist">সহায়ক মোড</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <strong id="timer">00:00</strong>
+        <span>⏱ সময়</span>
+      </div>
+
+      <div class="stat">
+        <strong id="mistakes">0</strong>
+        <span>❌ ভুল</span>
+      </div>
+
+      <div class="stat">
+        <strong id="hints">3</strong>
+        <span>💡 ইঙ্গিত</span>
+      </div>
+    </div>
+
+    <div id="status" class="status" aria-live="polite">
+      খেলা শুরু করো!
+    </div>
+
+    <div class="board-wrap">
+      <div id="board" class="board" role="grid"
+           aria-label="Sudoku বোর্ড">
+      </div>
+    </div>
+
+    <div class="numbers" aria-label="সংখ্যা নির্বাচন">
+      <button class="num-btn" data-num="1">1</button>
+      <button class="num-btn" data-num="2">2</button>
+      <button class="num-btn" data-num="3">3</button>
+      <button class="num-btn" data-num="4">4</button>
+      <button class="num-btn" data-num="5">5</button>
+      <button class="num-btn" data-num="6">6</button>
+      <button class="num-btn" data-num="7">7</button>
+      <button class="num-btn" data-num="8">8</button>
+      <button class="num-btn" data-num="9">9</button>
+    </div>
+
+    <div class="action-grid">
+      <button class="btn secondary" id="erase">⌫ মুছে ফেলো</button>
+      <button class="btn orange" id="hint">💡 ইঙ্গিত</button>
+      <button class="btn green" id="check">✅ পরীক্ষা</button>
+      <button class="btn red" id="solve">🔍 সমাধান</button>
+      <button class="btn" id="newGame">🎮 নতুন খেলা</button>
+      <button class="btn secondary" id="reset">↻ রিসেট</button>
+    </div>
+
+    <div class="help">
+      <strong>📘 কীভাবে খেলবে?</strong><br>
+      ১. একটি ফাঁকা ঘর নির্বাচন করো।<br>
+      ২. নিচের ১–৯ বাটনে চাপ দিয়ে সংখ্যা বসাও।<br>
+      ৩. প্রতিটি সারি, কলাম ও ৩ × ৩ বাক্সে ১–৯ একবার করে থাকতে হবে।<br>
+      ৪. ভুল হলে পরীক্ষা বাটন চাপো।<br>
+      ৫. ইঙ্গিত বাটন দিয়ে একটি ঘর পূরণ করতে পারবে।
+    </div>
+
+  </section>
+
+  <div class="footer">
+    🚀 Ultimate Offline Sudoku | Aronno
+  </div>
+
+</div>
+
+<script>
+"use strict";
+
+/* =================================
+   ULTIMATE OFFLINE SUDOKU
+   No API / No Internet
+================================= */
+
+const $ = id => document.getElementById(id);
+
+const boardEl = $("board");
+const statusEl = $("status");
+const timerEl = $("timer");
+const mistakesEl = $("mistakes");
+const hintsEl = $("hints");
+const difficultyEl = $("difficulty");
+const modeEl = $("mode");
+
+let puzzle = [];
+let solution = [];
+let current = [];
+let selected = -1;
+let mistakes = 0;
+let hints = 3;
+let seconds = 0;
+let timer = null;
+let gameOver = false;
+
+/* ---------- Helpers ---------- */
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function cloneGrid(grid){
+  return grid.map(row=>[...row]);
+}
+
+function emptyGrid(){
+  return Array.from({length:9},()=>Array(9).fill(0));
+}
+
+function setStatus(text,color=""){
+  statusEl.textContent=text;
+  statusEl.style.color=color || "#172033";
+}
+
+function formatTime(s){
+  const m=String(Math.floor(s/60)).padStart(2,"0");
+  const sec=String(s%60).padStart(2,"0");
+  return `${m}:${sec}`;
+}
+
+function updateStats(){
+  timerEl.textContent=formatTime(seconds);
+  mistakesEl.textContent=mistakes;
+  hintsEl.textContent=hints;
+}
+
+/* ---------- Sudoku Generator ---------- */
+
+function isSafe(grid,row,col,num){
+  for(let i=0;i<9;i++){
+    if(grid[row][i]===num) return false;
+    if(grid[i][col]===num) return false;
+  }
+
+  const sr=Math.floor(row/3)*3;
+  const sc=Math.floor(col/3)*3;
+
+  for(let r=sr;r<sr+3;r++){
+    for(let c=sc;c<sc+3;c++){
+      if(grid[r][c]===num) return false;
+    }
+  }
+
+  return true;
+}
+
+function fillGrid(grid){
+  for(let row=0;row<9;row++){
+    for(let col=0;col<9;col++){
+
+      if(grid[row][col]!==0) continue;
+
+      const nums=shuffle([1,2,3,4,5,6,7,8,9]);
+
+      for(const num of nums){
+        if(isSafe(grid,row,col,num)){
+          grid[row][col]=num;
+
+          if(fillGrid(grid)) return true;
+
+          grid[row][col]=0;
+        }
+      }
+
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function makePuzzle(){
+  const grid=emptyGrid();
+
+  fillGrid(grid);
+
+  solution=cloneGrid(grid);
+  puzzle=cloneGrid(grid);
+
+  let removeCount;
+
+  if(difficultyEl.value==="easy"){
+    removeCount=38;
+  }else if(difficultyEl.value==="medium"){
+    removeCount=48;
+  }else{
+    removeCount=55;
+  }
+
+  const positions=shuffle(
+    Array.from({length:81},(_,i)=>i)
+  );
+
+  for(let i=0;i<removeCount;i++){
+    const pos=positions[i];
+    puzzle[Math.floor(pos/9)][pos%9]=0;
+  }
+
+  current=cloneGrid(puzzle);
+}
+
+/* ---------- Board ---------- */
+
+function buildBoard(){
+  boardEl.innerHTML="";
+
+  for(let i=0;i<81;i++){
+
+    const row=Math.floor(i/9);
+    const col=i%9;
+    const value=current[row][col];
+
+    const btn=document.createElement("button");
+
+    btn.className="cell";
+    btn.type="button";
+    btn.setAttribute("role","gridcell");
+    btn.dataset.index=i;
+
+    if(puzzle[row][col]!==0){
+      btn.classList.add("given");
+      btn.disabled=true;
+    }
+
+    btn.textContent=value || "";
+
+    btn.addEventListener("click",()=>{
+      selectCell(i);
+    });
+
+    boardEl.appendChild(btn);
+  }
+
+  updateBoardStyles();
+}
+
+function selectCell(index){
+  if(gameOver) return;
+
+  const row=Math.floor(index/9);
+  const col=index%9;
+
+  if(puzzle[row][col]!==0) return;
+
+  selected=index;
+  updateBoardStyles();
+
+  setStatus(
+    `ঘর ${row+1},${col+1} নির্বাচিত`,
+    "#2563eb"
+  );
+}
+
+function updateBoardStyles(){
+  const cells=boardEl.querySelectorAll(".cell");
+
+  cells.forEach((cell,i)=>{
+    const row=Math.floor(i/9);
+    const col=i%9;
+
+    cell.classList.remove(
+      "selected",
+      "related",
+      "same-number",
+      "wrong",
+      "correct"
+    );
+
+    if(i===selected){
+      cell.classList.add("selected");
+    }
+
+    if(selected>=0){
+      const sr=Math.floor(selected/9);
+      const sc=selected%9;
+
+      if(row===sr || col===sc ||
+        (Math.floor(row/3)===Math.floor(sr/3) &&
+         Math.floor(col/3)===Math.floor(sc/3))){
+        cell.classList.add("related");
+      }
+    }
+
+    if(selected>=0){
+      const selectedValue=
+        current[Math.floor(selected/9)][selected%9];
+
+      if(selectedValue!==0 &&
+         current[row][col]===selectedValue){
+        cell.classList.add("same-number");
+      }
+    }
+
+    if(current[row][col]!==0 &&
+       puzzle[row][col]===0 &&
+       current[row][col]!==solution[row][col]){
+      cell.classList.add("wrong");
+    }
+
+    if(current[row][col]!==0 &&
+       puzzle[row][col]===0 &&
+       current[row][col]===solution[row][col]){
+      cell.classList.add("correct");
+    }
+  });
+}
+
+/* ---------- Number Input ---------- */
+
+function putNumber(num){
+
+  if(gameOver || selected<0){
+    setStatus("আগে একটি ফাঁকা ঘর নির্বাচন করো","#d97706");
+    return;
+  }
+
+  const row=Math.floor(selected/9);
+  const col=selected%9;
+
+  if(puzzle[row][col]!==0) return;
+
+  current[row][col]=num;
+
+  if(modeEl.value==="assist" && num!==solution[row][col]){
+    mistakes++;
+    setStatus("❌ ভুল সংখ্যা! আবার চেষ্টা করো","#dc2626");
+  }else{
+    setStatus("সংখ্যা বসানো হয়েছে","#059669");
+  }
+
+  updateStats();
+  updateBoardText();
+  updateBoardStyles();
+}
+
+function updateBoardText(){
+  const cells=boardEl.querySelectorAll(".cell");
+
+  cells.forEach((cell,i)=>{
+    const row=Math.floor(i/9);
+    const col=i%9;
+    cell.textContent=current[row][col] || "";
+  });
+}
+
+function eraseNumber(){
+
+  if(gameOver || selected<0) return;
+
+  const row=Math.floor(selected/9);
+  const col=selected%9;
+
+  if(puzzle[row][col]!==0) return;
+
+  current[row][col]=0;
+
+  updateBoardText();
+  updateBoardStyles();
+  setStatus("ঘর খালি করা হয়েছে","#64748b");
+}
+
+/* ---------- Check ---------- */
+
+function checkBoard(){
+
+  if(gameOver) return;
+
+  let wrong=0;
+  let empty=0;
+
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+
+      if(current[r][c]===0){
+        empty++;
+      }else if(current[r][c]!==solution[r][c]){
+        wrong++;
+      }
+    }
+  }
+
+  if(wrong>0){
+    mistakes++;
+    updateStats();
+    setStatus(`❌ ${wrong}টি সংখ্যা ভুল হয়েছে`,"#dc2626");
+  }else if(empty>0){
+    setStatus(`👍 ভালো! আরও ${empty}টি ঘর পূরণ করো`,"#d97706");
+  }else{
+    winGame();
+  }
+
+  updateBoardStyles();
+}
+
+/* ---------- Hint ---------- */
+
+function giveHint(){
+
+  if(gameOver || hints<=0){
+    setStatus("আর কোনো ইঙ্গিত নেই!","#d97706");
+    return;
+  }
+
+  const empty=[];
+
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      if(puzzle[r][c]===0 && current[r][c]!==solution[r][c]){
+        empty.push([r,c]);
+      }
+    }
+  }
+
+  if(empty.length===0){
+    winGame();
+    return;
+  }
+
+  const [r,c]=empty[
+    Math.floor(Math.random()*empty.length)
+  ];
+
+  current[r][c]=solution[r][c];
+  hints--;
+
+  selected=r*9+c;
+
+  updateStats();
+  updateBoardText();
+  updateBoardStyles();
+
+  setStatus("💡 একটি ঘরে সঠিক সংখ্যা বসানো হয়েছে","#059669");
+
+  if(isComplete()) winGame();
+}
+
+/* ---------- Solve ---------- */
+
+function solveGame(){
+
+  if(gameOver) return;
+
+  const ok=confirm("সব উত্তর দেখাবে?");
+
+  if(!ok) return;
+
+  current=cloneGrid(solution);
+
+  updateBoardText();
+  updateBoardStyles();
+
+  setStatus("🔍 সমাধান দেখানো হয়েছে","#2563eb");
+  stopTimer();
+  gameOver=true;
+}
+
+/* ---------- Completion ---------- */
+
+function isComplete(){
+
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      if(current[r][c]!==solution[r][c]){
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function winGame(){
+
+  gameOver=true;
+  stopTimer();
+
+  setStatus(
+    `🎉 অভিনন্দন! Sudoku সম্পূর্ণ! সময়: ${formatTime(seconds)}`,
+    "#059669"
+  );
+
+  updateStats();
+}
+
+/* ---------- Timer ---------- */
+
+function startTimer(){
+
+  stopTimer();
+
+  timer=setInterval(()=>{
+    if(!gameOver){
+      seconds++;
+      timerEl.textContent=formatTime(seconds);
+    }
+  },1000);
+}
+
+function stopTimer(){
+  if(timer){
+    clearInterval(timer);
+    timer=null;
+  }
+}
+
+/* ---------- Game Start ---------- */
+
+function newGame(){
+
+  stopTimer();
+
+  selected=-1;
+  mistakes=0;
+  hints=3;
+  seconds=0;
+  gameOver=false;
+
+  makePuzzle();
+  buildBoard();
+  updateStats();
+
+  setStatus("🎮 নতুন খেলা শুরু হয়েছে!","#2563eb");
+
+  startTimer();
+}
+
+function resetGame(){
+
+  if(gameOver) return;
+
+  current=cloneGrid(puzzle);
+  selected=-1;
+  mistakes=0;
+  hints=3;
+
+  buildBoard();
+  updateStats();
+
+  setStatus("↻ গেম রিসেট করা হয়েছে","#64748b");
+}
+
+/* ---------- Events ---------- */
+
+document.querySelectorAll(".num-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    putNumber(Number(btn.dataset.num));
+  });
+});
+
+$("erase").addEventListener("click",eraseNumber);
+$("hint").addEventListener("click",giveHint);
+$("check").addEventListener("click",checkBoard);
+$("solve").addEventListener("click",solveGame);
+$("newGame").addEventListener("click",newGame);
+$("reset").addEventListener("click",resetGame);
+
+difficultyEl.addEventListener("change",newGame);
+
+document.addEventListener("keydown",e=>{
+
+  if(gameOver) return;
+
+  if(e.key>="1" && e.key<="9"){
+    putNumber(Number(e.key));
+  }
+
+  if(e.key==="Backspace" || e.key==="Delete"){
+    eraseNumber();
+  }
+
+  if(e.key==="ArrowLeft" && selected>=0){
+    selectCell(Math.max(0,selected-1));
+  }
+
+  if(e.key==="ArrowRight" && selected>=0){
+    selectCell(Math.min(80,selected+1));
+  }
+
+  if(e.key==="ArrowUp" && selected>=0){
+    selectCell(Math.max(0,selected-9));
+  }
+
+  if(e.key==="ArrowDown" && selected>=0){
+    selectCell(Math.min(80,selected+9));
+  }
+});
+
+/* Start */
+newGame();
+
+</script>
+
+</body>
+</html>
